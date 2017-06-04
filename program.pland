@@ -1,0 +1,30 @@
+var basics = require "./basics";
+var comments = require "./comments";
+var jsBasics = require "./jsBasics";
+var jsString = require "./jsString";
+var jsExpression = require "./expression";
+
+var Parser = require "./Parser";
+
+var program = new Parser();
+
+program.extend(basics);
+program.extend(comments);
+program.extend(jsBasics);
+program.extend(jsString);
+program.extend(jsExpression);
+
+var concept = program.concept;
+var unit = program.unit;
+
+program.addUnit("program", concept.list({
+  of: concept.alternative([
+    unit.comment(),
+    unit.jsString(),
+    unit.ignore(),
+    unit.jsExpression()
+  ]),
+  end: unit.eof()
+}));
+
+return program;

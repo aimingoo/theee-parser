@@ -1,0 +1,31 @@
+try{
+
+var program = require "./program";
+  
+  
+  //console.log("test");
+
+  console.log(
+    //program.parse("x + 123.4", program.unit.program())
+    program.parse("123.4+123.4", program.unit.program())
+    //program.parse("\" \\c1 \"", program.unit.program()).list[0].list[1]
+    //program.parse("/*xxx*/\n//single line comment\n      /*some*/", program.unit.program())
+    //program.parse(" ", program.unit.program())
+  );
+}catch(err){
+  console.log("error");
+  console.log(err);
+};
+
+/*function extend(base, withObject){
+  var con = function(){};
+  con.prototype = base;
+  var ret = new con();
+  if (withObject){
+    for (name in withObject){
+      ret[name] = withObject[name];
+    };
+  };
+  return ret;
+};*/
+

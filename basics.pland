@@ -1,0 +1,3 @@
+var template = require "./tatoo-palace/template";
+
+return template;

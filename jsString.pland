@@ -1,0 +1,136 @@
+var basics = require "./basics";
+var jsBasics = require "./jsBasics";
+
+var Parser = require "./Parser";
+
+var jsString = new Parser();
+jsString.extend(basics);
+jsString.extend(jsBasics);
+
+var concept = jsString.concept;
+var unit = jsString.unit;
+
+var string = concept.string;
+
+// inspired by:
+// https://mathiasbynens.be/notes/javascript-escapes
+
+/*
+Single character escape sequences
+There are some reserved single character escape sequences for use in strings:
+
+\b: backspace (U+0008 BACKSPACE)
+\f: form feed (U+000C FORM FEED)
+\n: line feed (U+000A LINE FEED)
+\r: carriage return (U+000D CARRIAGE RETURN)
+\t: horizontal tab (U+0009 CHARACTER TABULATION)
+\v: vertical tab (U+000B LINE TABULATION)
+\0: null character (U+0000 NULL) (only if the next character is not a decimal digit; else it’s an octal escape sequence)
+\': single quote (U+0027 APOSTROPHE)
+\": double quote (U+0022 QUOTATION MARK)
+\\: backslash (U+005C REVERSE SOLIDUS)
+*/
+
+jsString.addUnit("jsSingleEscapeChar", concept.alternative([
+  string("b"),
+  string("f"),
+  string("n"),
+  string("r"),
+  string("t"),
+  string("v"),
+  string("0"),
+  string("'"),
+  string("\""),
+  string("\\")
+]));
+
+
+/*
+Octal escape sequences
+Any character with a character code lower than 256 (i.e. any character in the extended ASCII range) can be escaped using its octal-encoded character code, prefixed with \. 
+*/
+
+jsString.addUnit("jsOctalEscape", concept.number({
+  base: 8,
+  maxValue: 255,
+  minValue: 0,
+  point: false,
+  maxDigits: 3,
+  notEqual: ["0"]
+}));
+
+
+
+jsString.addUnit("jsHexEscape", concept.sequence([
+  concept.string("x"),
+  concept.number({
+    base: 16,
+    maxValue: 255,
+    minValue: 0,
+    point: false,
+    maxDigits: 2,
+    minDigits: 2
+  })
+]));
+
+
+jsString.addUnit("jsUnicodeEscapeES6", concept.sequence([
+  concept.string("u{"),
+  concept.number({
+    base: 16,
+    minValue: 0,
+    point: false,
+    minDigits: 1
+  }),
+  concept.string("}")
+]));
+
+
+// Control escape sequences
+
+jsString.addUnit("jsControlEscape", concept.sequence([
+  concept.string("c"),
+  concept.alternative("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+]));
+
+
+  
+
+jsString.addUnit("jsStringEscapeSequence", concept.sequence([
+  string("\\"),
+  concept.alternative([
+    unit.jsOctalEscape(),
+    unit.jsHexEscape(),
+    unit.jsUnicodeEscape(),
+    unit.jsUnicodeEscapeES6(),
+    unit.jsControlEscape(),
+    unit.jsSingleEscapeChar()
+  ])
+]));
+
+
+jsString.addUnit("jsStringSingleQuote", concept.list({
+  start: string("'"),
+  of: concept.alternative([
+    unit.jsStringEscapeSequence(),
+    unit.char()
+  ]),
+  end: string("'")
+}));
+
+jsString.addUnit("jsStringDoubleQuote", concept.list({
+  start: string("\""),
+  of: concept.alternative([
+    unit.jsStringEscapeSequence(),
+    unit.char()
+  ]),
+  end: string("\"")
+}));
+
+jsString.addUnit("jsString", concept.alternative([
+  unit.jsStringSingleQuote(),
+  unit.jsStringDoubleQuote()
+]));
+
+return jsString;
+  

@@ -1,0 +1,29 @@
+{
+  "name": "theee-parser",
+  "version": "0.0.1",
+  "description": "the helpful ecmascript enhancement engine - Parser",
+  "main": "./program.js",
+  "peerDependencies": {
+    "promiseland": ">= 0.0.24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soliton4/theee-parser"
+  },
+  "keywords": [
+    "parser",
+    "ecmascript"
+  ],
+  "author": {
+    "name": "Matthias Behrens",
+    "email": "matthias.behrens@gmail.com"
+  },
+  "license": "LGPLv3",
+  "engine": {
+    "node": ">=1.0"
+  },
+  "bugs": {
+    "url": "http://github.com/soliton4/theee-parser/issues"
+  },
+  "homepage": "http://promiseland.technology"
+}

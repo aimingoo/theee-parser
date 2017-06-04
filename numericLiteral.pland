@@ -1,0 +1,74 @@
+var basics = require "./basics";
+var jsBasics = require "./jsBasics";
+
+var Parser = require "./Parser";
+
+var jsNumericLiteral = new Parser();
+jsNumericLiteral.extend(basics);
+jsNumericLiteral.extend(jsBasics);
+
+var concept = jsNumericLiteral.concept;
+var unit = jsNumericLiteral.unit;
+
+var string = concept.string;
+
+
+jsNumericLiteral.addUnit("jsNumericDecimalLiteral", concept.number({
+  base: 10
+}));
+
+jsNumericLiteral.addUnit("jsNumericDecimalLiteralSudoOctal", concept.sequence([
+  concept.string("0"),
+  concept.number({
+    base: 10,
+    mustContainBeforePoint: concept.alternative([concept.string("8"), concept.string("9")])
+  })
+]));
+
+
+jsNumericLiteral.addUnit("jsNumericHexLiteral", concept.sequence([
+  concept.alternative([concept.string("0x"), concept.string("0X")]),
+  concept.number({
+    base: 16,
+    point: false,
+    minDigits: 1
+  })
+]));
+
+jsNumericLiteral.addUnit("jsNumericBinaryLiteral", concept.sequence([
+  concept.alternative([concept.string("0b"), concept.string("0B")]),
+  concept.number({
+    base: 2,
+    point: false,
+    minDigits: 1
+  })
+]));
+
+jsNumericLiteral.addUnit("jsNumericOctalLiteralExplicit", concept.sequence([
+  concept.alternative([concept.string("0o"), concept.string("0O")]),
+  concept.number({
+    base: 8,
+    point: false,
+    minDigits: 1
+  })
+]));
+
+jsNumericLiteral.addUnit("jsNumericOctalLiteral", concept.sequence([
+  concept.string("0"),
+  concept.number({
+    base: 8,
+    point: false
+  })
+]));
+
+
+jsNumericLiteral.addUnit("jsNumericLiteral", concept.alternative([
+  unit.jsNumericDecimalLiteralSudoOctal(),
+  unit.jsNumericOctalLiteral(),
+  unit.jsNumericDecimalLiteral(),
+  unit.jsNumericHexLiteral(),
+  unit.jsNumericOctalLiteralExplicit(),
+  unit.jsNumericBinaryLiteral()
+]));
+
+return jsNumericLiteral;

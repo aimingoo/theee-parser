@@ -1,0 +1,3 @@
+var util = require "./tatoo-palace/util";
+
+return util;

@@ -1,0 +1,39 @@
+var basics = require "./basics";
+
+var Parser = require "./Parser";
+
+var comments = new Parser();
+comments.extend(basics);
+
+comments.addUnit("multiLineCommentStart", basics.concept.string("/*"));
+comments.addUnit("multiLineCommentEnd", basics.concept.string("*/"));
+
+comments.addUnit("multiLineComment", basics.concept.list({
+  start: comments.unit.multiLineCommentStart(),
+  of: basics.unit.char(),
+  end: comments.unit.multiLineCommentEnd()
+}));
+
+comments.addUnit("multiLineCommentSingleLine", basics.concept.list({
+  start: comments.unit.multiLineCommentStart(),
+  of: basics.unit.char(),
+  never: basics.unit.eol(),
+  end: comments.unit.multiLineCommentEnd()
+}));
+
+
+comments.addUnit("singleLineCommentStart", basics.concept.string("//"));
+
+comments.addUnit("singleLineComment", basics.concept.list({
+  start: comments.unit.singleLineCommentStart(),
+  of: basics.unit.char(),
+  end: comments.unit.eol()
+}));
+
+comments.addUnit("comment", basics.concept.alternative([
+  comments.unit.multiLineComment(),
+  comments.unit.singleLineComment()
+]));
+
+
+return comments;

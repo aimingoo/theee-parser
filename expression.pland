@@ -1,0 +1,334 @@
+var basics = require "./basics";
+var jsBasics = require "./jsBasics";
+var jsString = require "./jsString";
+var jsNumericLiteral = require "./numericLiteral";
+var util = require "./util";
+
+var Parser = require "./Parser";
+
+var js = new Parser();
+js.extend(basics);
+js.extend(jsBasics);
+js.extend(jsString);
+js.extend(jsNumericLiteral);
+
+
+var concept = js.concept;
+var unit = js.unit;
+var tree = js.tree;
+
+var string = concept.string;
+
+
+
+// pre definition
+js.addTree("expression");
+
+
+js.addUnit("name", unit.identifierName());
+
+// grouping -------------------------------------------------------------------------------
+
+js.addConcept("grouping", {
+  test: function(interface, params){
+    var bp = params.bp || 0;
+    if (!bp){
+      return;
+    };
+    var res = {
+      bp: bp,
+      leftBracket: interface.eat(params.leftBracket)
+    };
+    if (!res.leftBracket){
+      return;
+    };
+    
+    res.content = interface.eat(tree[params.tree || "expression"]({
+      minBp: bp
+    }));
+    if (!res.content){
+      return;
+    };
+    
+    res.rightBracket = interface.eat(params.rightBracket);
+    if (!res.rightBracket){
+      return;
+    };
+    
+    return res;
+  }
+});
+
+js.addUnit("bracket(", concept.string("("));
+js.addUnit("bracket)", concept.string(")"));
+
+js.addUnit("grouping", concept.grouping({
+  bp: 2000,
+  leftBracket: unit["bracket("](),
+  rightBracket: unit["bracket)"](),
+  tree: "expression"
+}));
+
+
+js.addConcept("binaryOperator", {
+  test: function(interface, params){
+    console.log("binaryOperator");
+    console.log(params.operator);
+    var bp = params.bp || 0;
+    if (!bp){
+      return;
+    };
+    var left = interface.eat(
+      tree[params.tree || "expression"]({
+        minBp: bp + 1
+      }), {
+        left: true // accept left
+      }
+    );
+    
+    if (!left){
+      console.log("no left");
+      return;
+    };
+    if (!(left.bp >= bp)){
+      console.log("left bp");
+      return;
+    };
+    if (params.testLeft){
+      if (!params.testLeft(left)){
+        console.log("test failed");
+        return;
+      };
+    };
+    console.log("so far so good");
+    var res = {
+      bp: bp,
+      left: left
+    };
+    res.leftWhite = interface.eat(unit.ignore());
+    res.mid = interface.eat(params.operator);
+    if (!res.mid){
+      console.log("noluck");
+      return;
+    };
+    console.log("eaten:" + res.mid);
+    res.rightWhite = interface.eat(unit.ignore());
+    var rightFood = tree[params.tree || "expression"]({
+      minBp: bp
+    });
+    console.log("rightfood:");
+    console.log(rightFood);
+    res.right = interface.eat(rightFood);
+    
+    console.log("eatenright:" + res.right);
+    if (res.right){
+      if (params.testRight){
+        if (!params.testRight(res.right)){
+          return;
+        };
+      };
+      
+      console.log("returning" + res);
+      return res;
+    };
+  }
+});
+
+
+function addBinaryOperator(par){
+  var operators = [];
+  var i = 0;
+  if (typeof par.operator === "string"){
+    operators.push(par.operator);
+  };
+  if (par.operator && par.operator.length){
+    for (i = 0; i < par.operator.length; ++i){
+      operators.push(par.operator[i]);
+    };
+  };
+  if (!operators.length){
+    return;
+  };
+  
+  var op;
+  for (i = 0; i < operators.length; ++i){
+    op = "operator" + operators[i];
+    if (!unit[op]){
+      js.addUnit(op, concept.string(operators[i]));
+    };
+  };
+  
+  var opParam;
+  if (operators.length === 1){
+    opParam = unit[op]();
+  }else{
+    var alts = [];
+    for (i = 0; i < operators.length; ++i){
+      op = "operator" + operators[i];
+      alts.push(unit[op]());
+    };
+    opParam = concept.alternative(alts);
+  };
+  
+  js.addUnit(par.name, concept.binaryOperator({
+    bp: par.bp,
+    operator: opParam,
+    tree: "expression",
+    testLeft: par.testLeft,
+    testRight: par.testRight
+  }));
+};
+
+
+addBinaryOperator({
+  name: "memberAccess",
+  operator: ".",
+  bp: 190,
+  testLeft: function(eaten){
+    if (eaten.unit === "name"){
+      return true;
+    };
+    if (eaten.hasMembers){
+      return true;
+    };
+  },
+  testRight: function(eaten){
+    if (eaten.unit === "name"){
+      return true;
+    };
+  }
+});
+
+
+/*
+  helper concept
+  lets you define one more thing to eat after the left expression
+*/
+js.addConcept("eatExpression2", {
+  test: function(interface, params){
+    var bp = params.bp || 0;
+    if (!bp){
+      return;
+    };
+    var left = interface.eat(
+      tree[params.tree || "expression"]({
+        minBp: bp
+      }), {
+        left: true // accept left
+      }
+    );
+    
+    if (!left){
+      return;
+    };
+    if (!(left.bp >= bp)){
+      return;
+    };
+    if (params.testLeft){
+      if (!params.testLeft(left)){
+        return;
+      };
+    };
+    var res = {
+      bp: bp,
+      left: left
+    };
+    res.leftWhite = interface.eat(unit.ignore());
+    res.right = interface.eat(params.right);
+    if (!res.right){
+      return;
+    };
+    if (params.testRight){
+      if (!params.testRight(res.right)){
+        return;
+      };
+    };
+
+    return res;
+  }
+});
+
+js.addUnit("computedMember", concept.sequence([
+  string("["),
+  util.optional(unit.ignore()),
+  tree.expression(190),
+  util.optional(unit.ignore()),
+  string("]"),
+]));
+
+js.addUnit("computedMemberAccess", concept.eatExpression2({
+  bp: 190,
+  tree: "expression",
+  testLeft: function(eaten){
+    if (eaten.unit === "name"){
+      return true;
+    };
+    if (eaten.hasMembers){
+      return true;
+    };
+  },
+  right: unit.computedMember()
+}));
+
+
+
+addBinaryOperator({
+  name: "assignment",
+  operator: "=",
+  bp: 190,
+  testLeft: function(eaten){
+    if (eaten.unit === "name"){
+      return true;
+    };
+    if (eaten.hasMembers){
+      return true;
+    };
+  },
+  testRight: function(eaten){
+    if (eaten.unit === "name"){
+      return true;
+    };
+  }
+});
+
+
+js.addConcept("bracketAttachment", {
+  test: function(interface, params){
+    
+  }
+});
+
+
+addBinaryOperator({
+  name: "addition",
+  operator: ["+", "-"],
+  bp: 10
+});
+
+addBinaryOperator({
+  name: "multiplication",
+  operator: ["*", "/"],
+  bp: 10
+});
+
+
+
+
+js.addTree("expression", [
+  unit.grouping(),
+  
+  unit.addition(),
+  unit.multiplication(),
+  
+  unit.name(),
+  unit.jsNumericLiteral(),
+  unit.jsString()
+]);
+
+
+js.addUnit("jsExpression", tree.expression());
+
+
+
+return js;
+  
